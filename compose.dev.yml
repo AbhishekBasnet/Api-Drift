@@ -1,0 +1,14 @@
+name: api-drift-${ENVIRONMENT}
+
+services:
+  app:
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/.venv
+    develop:
+      watch:
+        - action: rebuild
+          path: pyproject.toml
+    ports:
+      - 3333:8000
