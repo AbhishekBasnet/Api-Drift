@@ -1,16 +1,17 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from app.api import provider_router
+from app.api import provider_router, subscription_router
 from app.core.database import Base, engine
 from app.core.exceptions import AlreadyExistsError, NotFoundError
-from app.infra.models import provider_model  # noqa: F401
+from app.infra.models import provider_model, subscription_model  # noqa: F401
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="API Drift")
 
 app.include_router(provider_router.router)
+app.include_router(subscription_router.router)
 
 
 @app.exception_handler(NotFoundError)
