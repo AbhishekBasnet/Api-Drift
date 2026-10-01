@@ -14,12 +14,11 @@ class DbChangelogEntryRepo(ChangelogEntryRepo):
         self.db = db
 
     @override
-    def get_by_provider(self, provider_id: int) -> list[ChangelogEntryEntity]:
-        rows = self.db.scalars(
-            select(ChangelogEntryModel)
-            .where(ChangelogEntryModel.provider_id == provider_id)
-            .order_by(ChangelogEntryModel.published_at.desc())
-        ).all()
+    def get_by_provider(self, provider_id: int, breaking_only: bool = False) -> list[ChangelogEntryEntity]:
+        query = select(ChangelogEntryModel).where(ChangelogEntryModel.provider_id == provider_id)
+        if breaking_only:
+            query = query.where(ChangelogEntryModel.is_breaking.is_(True))
+        rows = self.db.scalars(query.order_by(ChangelogEntryModel.published_at.desc())).all()
         return [ChangelogEntryEntity.model_validate(row) for row in rows]
 
     @override

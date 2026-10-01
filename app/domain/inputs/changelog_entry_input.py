@@ -12,3 +12,4 @@ class FetchedEntryInput(BaseModel):
 
 class CreateChangelogEntryInput(FetchedEntryInput):
     provider_id: int
+    is_breaking: bool = False

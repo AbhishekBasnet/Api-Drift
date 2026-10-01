@@ -11,6 +11,7 @@ from app.domain.fetchers.changelog_fetcher import ChangelogFetcher
 from app.domain.repos.changelog_entry_repo import ChangelogEntryRepo
 from app.domain.repos.provider_repo import ProviderRepo
 from app.domain.repos.subscription_repo import SubscriptionRepo
+from app.domain.services.breaking_change_classifier import BreakingChangeClassifier
 from app.infra.clients.feed_changelog_fetcher import FeedChangelogFetcher
 from app.infra.repos.db_changelog_entry_repo import DbChangelogEntryRepo
 from app.infra.repos.db_provider_repo import DbProviderRepo
@@ -52,4 +53,4 @@ def get_changelog_controller(
     provider_repo: Annotated[ProviderRepo, Depends(get_provider_repo)],
     fetcher: Annotated[ChangelogFetcher, Depends(get_changelog_fetcher)],
 ) -> ChangelogController:
-    return ChangelogController(ChangelogUsecase(repo, provider_repo, fetcher))
+    return ChangelogController(ChangelogUsecase(repo, provider_repo, fetcher, BreakingChangeClassifier()))
