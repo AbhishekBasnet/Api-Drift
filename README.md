@@ -118,3 +118,71 @@ tests/                  Fakes and tests
   tests is ignored.
 
 It is cheap and easy to explain, but it is a first filter, not a perfect one (see Limitations).
+
+## API
+
+Interactive docs are at `/docs`.
+
+| Method | Path | What it does |
+|--------|------|--------------|
+| GET | `/health` | Health check |
+| GET | `/providers/` | List providers |
+| GET | `/providers/{id}` | Get one provider (404 if missing) |
+| POST | `/providers/` | Add a provider: `name`, `slug`, `changelog_url` (409 if the slug exists) |
+| GET | `/subscriptions/?email=` | List one email's subscriptions |
+| POST | `/subscriptions/` | Subscribe: `email`, `provider_id` (404 unknown provider, 409 already subscribed) |
+| DELETE | `/subscriptions/{id}` | Unsubscribe |
+| GET | `/changelog/{provider_id}` | Stored entries, newest first. Add `?breaking_only=true` to filter |
+| POST | `/changelog/{provider_id}/refresh` | Fetch the feed now and return the new entries (502 if the feed fails) |
+
+A provider's `changelog_url` must be an **RSS or Atom feed**. GitHub release feeds such as
+`https://github.com/stripe/stripe-python/releases.atom` work well.
+
+## Automatic refresh and alerts
+
+- A background thread refreshes every provider every `REFRESH_INTERVAL_SECONDS` (default one hour). It waits one full
+  interval after startup before the first run. Set it to `0` to turn it off. If one feed fails, it is logged and the
+  others still run.
+- The **first** refresh of a provider only stores its recent history as a baseline and sends **no** alerts. Alerts
+  start with the next new breaking entry.
+- With `SMTP_HOST` set, alerts are sent as real emails. Without it, they are written to the server log, so the app
+  works with no mail server.
+
+## Configuration
+
+Set these in `.env` (see `.env.example`):
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `DATABASE_URL` | required | SQLAlchemy URL, e.g. `postgresql+psycopg://user:pass@localhost:5433/apidrift` |
+| `DOCKER_DATABASE_URL` | none | Same database, as seen from inside the Docker network (used by `make up`) |
+| `REFRESH_INTERVAL_SECONDS` | `3600` | Seconds between automatic refreshes, `0` disables |
+| `SMTP_HOST` | empty | Mail server. Empty means alerts go to the log |
+| `SMTP_PORT` | `587` | Mail server port |
+| `SMTP_USERNAME`, `SMTP_PASSWORD` | empty | Optional mail login |
+| `SMTP_STARTTLS` | `true` | Use STARTTLS |
+| `ALERT_FROM_EMAIL` | `alerts@apidrift.local` | Sender address |
+
+## Tests
+
+```bash
+make test
+```
+
+- **Usecase tests** run against in-memory fakes in `tests/fakes.py`, with no database.
+- **API tests** run the whole stack on an in-memory SQLite database. `tests/conftest.py` forces this, so the tests
+  never touch your real database and the background job is switched off.
+- The feed fetcher is tested with canned Atom and RSS documents, including an XML entity-expansion attack.
+
+## Limitations
+
+- **Keyword classification is imperfect.** Release notes that mention "removed" in a harmless way can still be
+  flagged, and unusual wording can be missed. Twilio flags most releases because it really does remove API paths often.
+- **SDK feeds, not API feeds.** Stripe and Twilio publish no changelog feed, so the defaults follow their SDK releases.
+- **Feeds only.** HTML-only changelog pages are not supported.
+- **One refresh interval for everyone.** There are no per-provider intervals or backoff.
+- **Single process.** Each server process would run its own refresh loop, so run one worker.
+- **Alerts are not retried.** A failed email is logged, and there is no alert history.
+- **No login.** A subscriber is just an email address, so anyone can list or delete subscriptions by email or id.
+- **No migrations.** Tables are created with `create_all` on startup. Changing a column on an existing database needs
+  a manual `ALTER TABLE`.
