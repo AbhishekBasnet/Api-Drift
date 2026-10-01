@@ -3,10 +3,10 @@ set -e
 
 case "$1" in
   prod)
-    fastapi run
+    exec fastapi run
     ;;
   dev)
-    fastapi dev --host=0.0.0.0
+    exec fastapi dev --host=0.0.0.0
     ;;
   *)
     echo "Unknown subcommand: $1"
