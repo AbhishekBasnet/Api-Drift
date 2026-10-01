@@ -3,6 +3,8 @@ name: api-drift-${ENVIRONMENT}
 services:
   app:
     working_dir: /app
+    environment:
+      DATABASE_URL: ${DOCKER_DATABASE_URL:?set DOCKER_DATABASE_URL in your .env file}
     volumes:
       - .:/app
       - /app/.venv
@@ -12,3 +14,11 @@ services:
           path: pyproject.toml
     ports:
       - 3333:8000
+    networks:
+      - default
+      - dev-postgres
+
+networks:
+  dev-postgres:
+    name: dev-postgres_default
+    external: true
