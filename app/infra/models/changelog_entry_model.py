@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -16,4 +16,5 @@ class ChangelogEntryModel(Base):
     url: Mapped[str] = mapped_column(String(1000))
     summary: Mapped[str] = mapped_column(Text)
     published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    is_breaking: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))

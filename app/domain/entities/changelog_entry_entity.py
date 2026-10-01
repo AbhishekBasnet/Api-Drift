@@ -12,4 +12,5 @@ class ChangelogEntryEntity(BaseModel):
     url: str
     summary: str
     published_at: datetime
+    is_breaking: bool
     created_at: datetime
