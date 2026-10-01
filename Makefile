@@ -16,3 +16,6 @@ down: ## Stop all services
 
 sync: ## Sync Python dependencies with uv
 	uv sync
+
+test: ## Run the test suite
+	uv run pytest
