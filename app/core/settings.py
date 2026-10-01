@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str | None = None
     SMTP_STARTTLS: bool = True
     ALERT_FROM_EMAIL: str = "alerts@apidrift.local"
+    REFRESH_INTERVAL_SECONDS: int = 3600
 
 
 settings = Settings()
