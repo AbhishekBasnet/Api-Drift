@@ -19,3 +19,6 @@ sync: ## Sync Python dependencies with uv
 
 test: ## Run the test suite
 	uv run pytest
+
+seed: ## Add the default providers to the database
+	uv run python -m scripts.seed_providers
