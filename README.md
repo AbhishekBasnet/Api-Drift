@@ -47,3 +47,74 @@ The app container joins the `dev-postgres_default` Docker network and reaches th
 | `make test` | Run the test suite                             |
 | `make seed` | Add the default providers (safe to run twice)  |
 | `make sync` | Install dependencies with uv                   |
+
+## Architecture
+
+The code follows clean architecture. Every request goes through the same layers, and each layer only knows about the
+ones **below** it:
+
+```
+Router → Controller → Usecase → Repo interface ← Repo implementation
+ (HTTP)   (response)   (rules)     (domain)          (database)
+```
+
+| Layer | Folder | Job |
+|-------|--------|-----|
+| Router | `app/api/` | HTTP only: paths, status codes, request and response schemas |
+| Controller | `app/controller/` | Calls one usecase and turns entities into response schemas |
+| Usecase | `app/usecases/` | The business rules (duplicates, 404s, first-sync, alerts) |
+| Domain | `app/domain/` | Plain Python and Pydantic: entities, inputs, abstract repos, the classifier |
+| Infrastructure | `app/infra/` | The real work: SQLAlchemy models and repos, the feed fetcher, the email sender |
+| Core | `app/core/` | Settings, database session, exceptions |
+
+The important rule: **usecases depend on interfaces, never on SQLAlchemy or HTTP.** The abstract repos, the fetcher
+and the notifier are defined in `domain/`, and `infra/` implements them. That is why the usecases can be tested with
+small in-memory fakes and no database.
+
+### Folder map
+
+```
+main.py                 App setup, error handlers, background job startup
+app/
+  api/                  Routers, schemas and dependencies.py (wires the layers with Depends)
+  controller/           ProviderController, SubscriptionController, ChangelogController
+  usecases/             ProviderUsecase, SubscriptionUsecase, ChangelogUsecase, AlertUsecase
+  domain/
+    entities/           What comes back from repos (ProviderEntity, ...)
+    inputs/             What goes into repos (CreateProviderInput, ...)
+    repos/              Abstract repo interfaces
+    fetchers/           ChangelogFetcher interface
+    notifiers/          AlertNotifier interface
+    services/           BreakingChangeClassifier
+  infra/
+    models/             SQLAlchemy tables
+    repos/              Db*Repo classes implementing the interfaces
+    clients/            Feed fetcher, SMTP and log notifiers
+  jobs/                 Background refresh loop
+  container.py          Builds the changelog usecase (used by the routes and the job)
+  core/                 Settings, database, exceptions
+scripts/                seed_providers.py
+tests/                  Fakes and tests
+```
+
+### Following one request
+
+`POST /changelog/{provider_id}/refresh`:
+
+1. **Router** (`changelog_router.py`) receives the call and hands it to the controller.
+2. **Controller** calls `ChangelogUsecase.refresh()`.
+3. **Usecase** loads the provider, asks the **fetcher** for the feed, skips URLs it already stores, classifies each
+   new entry, saves it through the **repo** and, if a new entry is breaking, asks `AlertUsecase` to notify the
+   subscribers.
+4. **Controller** converts the saved entities into response schemas and the router returns them.
+
+### How breaking changes are detected
+
+`BreakingChangeClassifier` uses plain keyword rules, no AI:
+
+- "breaking" or the ⚠ sign always counts (but "no breaking changes" does not).
+- Words like *removed*, *deprecated*, *renamed*, *no longer*, *drop support*, *sunset* count too.
+- Each **line** of an entry is judged on its own, and a line that talks about docs, examples, descriptions, typos or
+  tests is ignored.
+
+It is cheap and easy to explain, but it is a first filter, not a perfect one (see Limitations).
