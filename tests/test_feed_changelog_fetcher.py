@@ -77,3 +77,40 @@ def test_entity_expansion_attack_is_rejected(monkeypatch: pytest.MonkeyPatch) ->
 
     with pytest.raises(FetchError):
         FeedChangelogFetcher().fetch(URL)
+
+
+def test_atom_entry_with_missing_fields_uses_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    serve(monkeypatch, b'<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>Bare</title></entry></feed>')
+
+    [entry] = FeedChangelogFetcher().fetch(URL)
+
+    assert entry.url == ""
+    assert entry.summary == ""
+    assert entry.published_at.tzinfo is not None
+
+
+def test_long_summary_is_truncated(monkeypatch: pytest.MonkeyPatch) -> None:
+    long_text = "x" * 5000
+    serve(
+        monkeypatch,
+        f"<rss><channel><item><title>t</title><description>{long_text}</description></item></channel></rss>".encode(),
+    )
+
+    [entry] = FeedChangelogFetcher().fetch(URL)
+
+    assert len(entry.summary) == 2000
+
+
+@pytest.mark.parametrize("date", ["not a date", "", "32 Foo 2026"])
+def test_unparseable_dates_fall_back_to_now(date: str) -> None:
+    parsed = FeedChangelogFetcher._parse_date(date)
+
+    assert parsed.tzinfo is not None
+    assert parsed.year >= 2026
+
+
+def test_naive_iso_date_is_assumed_utc() -> None:
+    parsed = FeedChangelogFetcher._parse_date("2026-09-30T10:00:00")
+
+    assert parsed.utcoffset() is not None
+    assert parsed.utcoffset().total_seconds() == 0
