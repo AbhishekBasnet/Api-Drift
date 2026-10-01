@@ -12,8 +12,10 @@ ControllerDep = Annotated[ChangelogController, Depends(get_changelog_controller)
 
 
 @router.get("/{provider_id}")
-def list_entries(provider_id: int, controller: ControllerDep) -> list[ChangelogEntryResponse]:
-    return controller.list_entries(provider_id)
+def list_entries(
+    provider_id: int, controller: ControllerDep, breaking_only: bool = False
+) -> list[ChangelogEntryResponse]:
+    return controller.list_entries(provider_id, breaking_only)
 
 
 @router.post("/{provider_id}/refresh")
