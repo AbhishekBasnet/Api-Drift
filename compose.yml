@@ -1,0 +1,11 @@
+name: api-drift-${ENVIRONMENT}
+
+services:
+  app:
+    container_name: api-drift.${ENVIRONMENT}
+    image: api-drift:${ENVIRONMENT}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${ENVIRONMENT}
+    restart: "no"

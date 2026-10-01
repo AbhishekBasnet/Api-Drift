@@ -1,0 +1,9 @@
+line-length = 120
+
+[lint]
+select = ["E", "F", "N", "ANN"]
+ignore = ["ANN002", "ANN003", "N818"]
+extend-select = ["I"]
+
+[format]
+docstring-code-format = true
