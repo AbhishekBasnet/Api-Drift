@@ -1,4 +1,6 @@
-from app.core.exceptions import NotFoundError
+import logging
+
+from app.core.exceptions import FetchError, NotFoundError
 from app.domain.entities.changelog_entry_entity import ChangelogEntryEntity
 from app.domain.entities.provider_entity import ProviderEntity
 from app.domain.fetchers.changelog_fetcher import ChangelogFetcher
@@ -7,6 +9,8 @@ from app.domain.repos.changelog_entry_repo import ChangelogEntryRepo
 from app.domain.repos.provider_repo import ProviderRepo
 from app.domain.services.breaking_change_classifier import BreakingChangeClassifier
 from app.usecases.alert_usecase import AlertUsecase
+
+logger = logging.getLogger("uvicorn.error")
 
 
 class ChangelogUsecase:
@@ -44,6 +48,15 @@ class ChangelogUsecase:
         if breaking_entries and not is_first_sync:
             self.alert_usecase.notify_breaking_entries(provider, breaking_entries)
         return new_entries
+
+    def refresh_all(self) -> int:
+        total = 0
+        for provider in self.provider_repo.get_all():
+            try:
+                total += len(self.refresh(provider.id))
+            except FetchError:
+                logger.exception("Could not refresh %s", provider.name)
+        return total
 
     def _get_provider(self, provider_id: int) -> ProviderEntity:
         provider = self.provider_repo.get_by_id(provider_id)

@@ -1,14 +1,30 @@
+import threading
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from app.api import changelog_router, provider_router, subscription_router
 from app.core.database import Base, engine
 from app.core.exceptions import AlreadyExistsError, FetchError, NotFoundError
+from app.core.settings import settings
 from app.infra.models import changelog_entry_model, provider_model, subscription_model  # noqa: F401
+from app.jobs.refresh_job import run_refresh_loop
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="API Drift")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    stop = threading.Event()
+    if settings.REFRESH_INTERVAL_SECONDS > 0:
+        threading.Thread(target=run_refresh_loop, args=(stop,), daemon=True).start()
+    yield
+    stop.set()
+
+
+app = FastAPI(title="API Drift", lifespan=lifespan)
 
 app.include_router(provider_router.router)
 app.include_router(subscription_router.router)
