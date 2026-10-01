@@ -19,6 +19,11 @@ class DbSubscriptionRepo(SubscriptionRepo):
         return [SubscriptionEntity.model_validate(row) for row in rows]
 
     @override
+    def get_by_provider(self, provider_id: int) -> list[SubscriptionEntity]:
+        rows = self.db.scalars(select(SubscriptionModel).where(SubscriptionModel.provider_id == provider_id)).all()
+        return [SubscriptionEntity.model_validate(row) for row in rows]
+
+    @override
     def get_by_id(self, subscription_id: int) -> SubscriptionEntity | None:
         row = self.db.get(SubscriptionModel, subscription_id)
         return SubscriptionEntity.model_validate(row) if row else None

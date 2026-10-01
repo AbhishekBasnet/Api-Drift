@@ -8,3 +8,7 @@ class AlreadyExistsError(Exception):
 
 class FetchError(Exception):
     pass
+
+
+class NotifyError(Exception):
+    pass

@@ -9,6 +9,9 @@ class SubscriptionRepo(ABC):
     def get_by_email(self, email: str) -> list[SubscriptionEntity]: ...
 
     @abstractmethod
+    def get_by_provider(self, provider_id: int) -> list[SubscriptionEntity]: ...
+
+    @abstractmethod
     def get_by_id(self, subscription_id: int) -> SubscriptionEntity | None: ...
 
     @abstractmethod
