@@ -1,5 +1,7 @@
 # API Drift
 
+[![CI](https://github.com/AbhishekBasnet/Api-Drift/actions/workflows/ci.yml/badge.svg)](https://github.com/AbhishekBasnet/Api-Drift/actions/workflows/ci.yml)
+
 A small FastAPI service that watches the changelogs of third-party APIs (Stripe, Twilio, OpenAI, ...) and emails you
 when a new release looks like a **breaking change**. Think "Dependabot for API breaking changes".
 
@@ -168,6 +170,9 @@ Set these in `.env` (see `.env.example`):
 ```bash
 make test
 ```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs `ruff`, `ty` and the tests on every pull request to `develop` and
+`main`, and on every push to them.
 
 - **Usecase tests** run against in-memory fakes in `tests/fakes.py`, with no database.
 - **API tests** run the whole stack on an in-memory SQLite database. `tests/conftest.py` forces this, so the tests
