@@ -1,10 +1,10 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from app.api import provider_router, subscription_router
+from app.api import changelog_router, provider_router, subscription_router
 from app.core.database import Base, engine
-from app.core.exceptions import AlreadyExistsError, NotFoundError
-from app.infra.models import provider_model, subscription_model  # noqa: F401
+from app.core.exceptions import AlreadyExistsError, FetchError, NotFoundError
+from app.infra.models import changelog_entry_model, provider_model, subscription_model  # noqa: F401
 
 Base.metadata.create_all(bind=engine)
 
@@ -12,6 +12,7 @@ app = FastAPI(title="API Drift")
 
 app.include_router(provider_router.router)
 app.include_router(subscription_router.router)
+app.include_router(changelog_router.router)
 
 
 @app.exception_handler(NotFoundError)
@@ -22,6 +23,11 @@ def not_found_handler(request: Request, exc: NotFoundError) -> JSONResponse:
 @app.exception_handler(AlreadyExistsError)
 def already_exists_handler(request: Request, exc: AlreadyExistsError) -> JSONResponse:
     return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
+
+
+@app.exception_handler(FetchError)
+def fetch_error_handler(request: Request, exc: FetchError) -> JSONResponse:
+    return JSONResponse(status_code=status.HTTP_502_BAD_GATEWAY, content={"detail": str(exc)})
 
 
 @app.get("/health")
