@@ -8,7 +8,7 @@ ENV_FILE := $(if $(ENV),.env.$(ENV),.env)
 COMPOSE = docker compose --env-file=$(ENV_FILE) -f compose.yml -f compose.dev.yml
 
 up: ## Start all services with hot reload
-	$(COMPOSE) up --watch --build
+	$(COMPOSE) up --watch --build --renew-anon-volumes
 
 down: ## Stop all services
 
